@@ -1,0 +1,3 @@
+// This file is a backup of the original synchronous better-sqlite3 db.ts
+// See lib/db.ts for the new async Turso-compatible version
+// Original file was 1989 lines of synchronous SQLite operations
