@@ -3,10 +3,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm ci",
   "framework": "nextjs",
-  "outputDirectory": ".next",
-  "env": {
-    "GROQ_API_KEY": "@groq_api_key",
-    "TURSO_DATABASE_URL": "@turso_database_url",
-    "TURSO_AUTH_TOKEN": "@turso_auth_token"
-  }
+  "outputDirectory": ".next"
 }
