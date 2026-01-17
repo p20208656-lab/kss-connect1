@@ -8,8 +8,8 @@ export const runtime = 'nodejs';
 const resetSchema = z.object({
   firstName: z.string().min(1, 'กรุณากรอกชื่อ'),
   lastName: z.string().min(1, 'กรุณากรอกนามสกุล'),
-  newPassword: z.string().min(4, 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'),
-  confirmPassword: z.string().min(1, 'กรุณายืนยันรหัสผ่าน'),
+  newPassword: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
+  confirmPassword: z.string().min(6, 'กรุณายืนยันรหัสผ่าน'),
 });
 
 export async function POST(req: NextRequest) {
