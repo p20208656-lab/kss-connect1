@@ -252,6 +252,25 @@ export async function findUsersByName(firstName: string, lastName: string) {
   }));
 }
 
+export async function findUserByStudentId(studentId: string) {
+  await ensureInitialized();
+  const result = await getDb().execute({
+    sql: 'SELECT id, first_name, last_name, student_id, class_code, password_hash, created_at FROM users WHERE student_id = ?',
+    args: [studentId.trim()]
+  });
+  if (result.rows.length === 0) return undefined;
+  const row = result.rows[0];
+  return {
+    id: Number(row.id),
+    first_name: String(row.first_name),
+    last_name: String(row.last_name),
+    student_id: row.student_id ? String(row.student_id) : null,
+    class_code: String(row.class_code),
+    password_hash: String(row.password_hash),
+    created_at: String(row.created_at)
+  };
+}
+
 export async function createUser(firstName: string, lastName: string, classCode: string, passwordHash: string) {
   await ensureInitialized();
   const createdAt = new Date().toISOString();

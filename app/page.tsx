@@ -4,22 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 
-const classOptions: string[] = (() => {
-  const opts: string[] = [];
-  for (let grade = 1; grade <= 6; grade++) {
-    const maxRoom = grade <= 3 ? 5 : 4;
-    for (let room = 1; room <= maxRoom; room++) {
-      opts.push(`ม.${grade}/${room}`);
-    }
-  }
-  return opts;
-})();
-
 export default function Home() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [classCode, setClassCode] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,49 +23,34 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    // Prefill class code from stored profile so login can reuse the previously chosen room
-    try {
-      const raw = localStorage.getItem("kss_profile");
-      if (raw) {
-        const profile = JSON.parse(raw);
-        if (profile?.classCode) {
-          setClassCode(profile.classCode);
-        }
-      }
-    } catch {}
-  }, []);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Try admin login ONLY if no lastName is provided (admin uses username only)
-      if (!lastName.trim()) {
-        const adminRes = await fetch("/api/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: firstName, password }),
+      // Try admin login if studentId looks like admin username
+      const adminRes = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: studentId, password }),
+      });
+      const adminJson = await adminRes.json();
+      
+      if (adminRes.ok && adminJson?.ok) {
+        localStorage.setItem('kss_admin', String(adminJson.adminId));
+        await Swal.fire({
+          icon: "success",
+          title: "เข้าสู่ระบบแอดมินสำเร็จ",
+          confirmButtonColor: "#138F2D",
         });
-        const adminJson = await adminRes.json();
-        
-        if (adminRes.ok && adminJson?.ok) {
-          localStorage.setItem('kss_admin', String(adminJson.adminId));
-          await Swal.fire({
-            icon: "success",
-            title: "เข้าสู่ระบบแอดมินสำเร็จ",
-            confirmButtonColor: "#138F2D",
-          });
-          router.push("/admin");
-          return;
-        }
+        router.push("/admin");
+        return;
       }
 
-      // Student login (requires firstName, lastName)
+      // Student login
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, classCode, password }),
+        body: JSON.stringify({ studentId, password }),
       });
       const json = await res.json();
       if (!res.ok || !json?.ok) {
@@ -94,9 +66,9 @@ export default function Home() {
       });
       try {
         localStorage.setItem("kss_profile", JSON.stringify({ 
-          firstName, 
-          lastName, 
-          classCode: json.classCode || classCode,
+          firstName: json.firstName, 
+          lastName: json.lastName, 
+          classCode: json.classCode,
           userId: json.userId,
           studentId: json.studentId
         }));
@@ -112,16 +84,6 @@ export default function Home() {
       setSubmitting(false);
     }
   }
-
-  // Build grouped options for select
-  const groups = [
-    { grade: 1, rooms: 5 },
-    { grade: 2, rooms: 5 },
-    { grade: 3, rooms: 5 },
-    { grade: 4, rooms: 4 },
-    { grade: 5, rooms: 4 },
-    { grade: 6, rooms: 4 },
-  ];
 
   return (
     <div className="page-bg min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden">
@@ -149,57 +111,17 @@ export default function Home() {
         </div>
 
         <form className="p-4 sm:p-8 pt-2 sm:pt-4 space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            <div>
-              <label className="form-label text-sm sm:text-base">ชื่อ</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="เช่น สันติ"
-                className="input-base text-sm sm:text-base"
-                required
-                aria-label="ชื่อ"
-              />
-            </div>
-            <div>
-              <label className="form-label text-sm sm:text-base">นามสกุล</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="เช่น สุขใจ"
-                className="input-base text-sm sm:text-base"
-                aria-label="นามสกุล"
-              />
-            </div>
-          </div>
-
           <div>
-            <label className="form-label text-sm sm:text-base">ห้องเรียน</label>
-            <select
-              value={classCode}
-              onChange={(e) => setClassCode(e.target.value)}
-              className="input-base text-sm sm:text-base cursor-pointer max-h-[200px] sm:max-h-[300px]"
-              aria-label="เลือกห้องเรียน"
-              size={1}
-            >
-              <option value="" disabled>
-                กรุณาเลือกห้องเรียน
-              </option>
-              {groups.map(({ grade, rooms }) => (
-                <optgroup key={grade} label={`ม.${grade}`}>
-                  {Array.from({ length: rooms }, (_, i) => i + 1).map((room) => {
-                    const val = `ม.${grade}/${room}`;
-                    return (
-                      <option key={val} value={val}>
-                        {val}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-              ))}
-            </select>
+            <label className="form-label text-sm sm:text-base">รหัสประจำตัวนักเรียน</label>
+            <input
+              type="text"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              placeholder="เช่น 10001"
+              className="input-base text-sm sm:text-base"
+              required
+              aria-label="รหัสประจำตัวนักเรียน"
+            />
           </div>
 
           <div>
