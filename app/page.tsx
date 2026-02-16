@@ -115,8 +115,10 @@ export default function Home() {
             <label className="form-label text-sm sm:text-base">รหัสประจำตัวนักเรียน</label>
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              onChange={(e) => setStudentId(e.target.value.replace(/\D/g, ''))}
               placeholder="เช่น 10001"
               className="input-base text-sm sm:text-base"
               required
