@@ -63,7 +63,8 @@ export async function POST(req: Request) {
       id: user.id, 
       createdAt: result.createdAt,
       userId: user.id,
-      classCode: user.class_code
+      classCode: user.class_code,
+      studentId: user.student_id
     });
     // Allow the client-side cookie check used for redirects
     res.cookies.set('kss_user', String(user.id), {

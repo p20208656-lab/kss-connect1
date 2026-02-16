@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Swal from "sweetalert2";
 
 export default function UserInfo() {
-  const [profile, setProfile] = useState<{ firstName: string; lastName: string; classCode: string; userId?: number } | null>(null);
+  const [profile, setProfile] = useState<{ firstName: string; lastName: string; classCode: string; userId?: number; studentId?: string } | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -136,6 +136,10 @@ export default function UserInfo() {
             <p class="text-sm text-gray-600 font-semibold">ชื่อ-นามสกุล</p>
             <p class="text-lg font-bold text-gray-900">${profile.firstName} ${profile.lastName}</p>
           </div>
+          ${profile.studentId ? `<div class="border-b pb-2">
+            <p class="text-sm text-gray-600 font-semibold">รหัสประจำตัวนักเรียน</p>
+            <p class="text-lg font-bold text-gray-900">${profile.studentId}</p>
+          </div>` : ''}
           <div class="border-b pb-2">
             <p class="text-sm text-gray-600 font-semibold">ห้องเรียน</p>
             <p class="text-lg font-bold text-gray-900">${profile.classCode}</p>

@@ -87,7 +87,8 @@ export default function Home() {
             firstName, 
             lastName, 
             classCode: json.classCode || classCode,
-            userId: json.userId
+            userId: json.userId,
+            studentId: json.studentId
           }));
           window.dispatchEvent(new Event("kss:profile-updated"));
         } catch {}
@@ -140,7 +141,8 @@ export default function Home() {
           firstName, 
           lastName, 
           classCode: json.classCode || classCode,
-          userId: json.userId
+          userId: json.userId,
+          studentId: json.studentId
         }));
         // แจ้งส่วนหัว (UserInfo) ให้รีเฟรชข้อมูลทันที โดยไม่ต้องรีเฟรชหน้า
         window.dispatchEvent(new Event("kss:profile-updated"));
