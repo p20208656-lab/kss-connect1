@@ -17,7 +17,6 @@ const classOptions: string[] = (() => {
 
 export default function Home() {
   const router = useRouter();
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [classCode, setClassCode] = useState("");
@@ -54,49 +53,6 @@ export default function Home() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Register mode
-      if (isRegisterMode) {
-        if (!firstName.trim() || !lastName.trim() || !classCode || !password) {
-          await Swal.fire({ icon: "error", title: "ผิดพลาด", text: "กรุณากรอกข้อมูลให้ครบถ้วน" });
-          return;
-        }
-        
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ firstName, lastName, classCode, password }),
-        });
-        const json = await res.json();
-        
-        if (!res.ok || !json?.ok) {
-          const message = json?.errors?.formErrors?.join("\n") || json?.message || "ไม่สามารถสมัครสมาชิกได้";
-          await Swal.fire({ icon: "error", title: "ไม่สำเร็จ", text: message });
-          return;
-        }
-        
-        await Swal.fire({
-          icon: "success",
-          title: "สมัครสมาชิกสำเร็จ",
-          text: "กำลังเข้าสู่ระบบ...",
-          confirmButtonColor: "#138F2D",
-          timer: 1500
-        });
-        
-        try {
-          localStorage.setItem("kss_profile", JSON.stringify({ 
-            firstName, 
-            lastName, 
-            classCode: json.classCode || classCode,
-            userId: json.userId,
-            studentId: json.studentId
-          }));
-          window.dispatchEvent(new Event("kss:profile-updated"));
-        } catch {}
-        
-        router.push("/dashboard");
-        return;
-      }
-      
       // Try admin login ONLY if no lastName is provided (admin uses username only)
       if (!lastName.trim()) {
         const adminRes = await fetch("/api/admin/login", {
@@ -184,14 +140,11 @@ export default function Home() {
               </svg>
             </div>
             <h1 className="text-xl sm:text-3xl font-extrabold text-school-700 tracking-tight">
-              {isRegisterMode ? "สมัครสมาชิกนักเรียน" : "ระบบลงชื่อเข้าใช้งานนักเรียน"}
+              ระบบลงชื่อเข้าใช้งานนักเรียน
             </h1>
           </div>
           <p className="text-sm sm:text-base text-zinc-600 leading-relaxed pl-1">
-            {isRegisterMode 
-              ? "กรอกข้อมูลเพื่อสมัครสมาชิก" 
-              : "กรอกข้อมูลเพื่อเข้าสู่ระบบ"
-            }
+            กรอกข้อมูลเพื่อเข้าสู่ระบบ
           </p>
         </div>
 
@@ -272,23 +225,11 @@ export default function Home() {
                 กำลังบันทึก...
               </span>
             ) : (
-              isRegisterMode ? "สมัครสมาชิก" : "เข้าสู่ระบบ"
+              "เข้าสู่ระบบ"
             )}
           </button>
 
-          {/* Toggle between Login and Register */}
-          <div className="pt-3 text-center">
-            <button
-              type="button"
-              onClick={() => setIsRegisterMode(!isRegisterMode)}
-              className="text-school-600 hover:text-school-700 text-sm font-medium transition-colors"
-            >
-              {isRegisterMode ? "มีบัญชีแล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก"}
-            </button>
-          </div>
-
           {/* Teacher Login Link */}
-          {!isRegisterMode && (
           <div className="pt-4 border-t border-school-100/50 text-center">
             <button
               type="button"
@@ -301,7 +242,6 @@ export default function Home() {
               เข้าสู่ระบบสำหรับครู
             </button>
           </div>
-          )}
         </form>
       </div>
     </div>
