@@ -322,19 +322,8 @@ export async function updateUserPassword(userId: number, newPasswordHash: string
   });
 }
 
-/**
- * อัปเดตรหัสนักเรียนของผู้ใช้
- */
-export async function updateUserStudentId(userId: number, studentId: string) {
-  await ensureInitialized();
-  return getDb().execute({
-    sql: 'UPDATE users SET student_id = ? WHERE id = ?',
-    args: [studentId, userId]
-  });
-}
-
 // ============================================================================
-// ฟังก์ชันจัดการอีเวนต์
+// EVENT FUNCTIONS
 // ============================================================================
 
 export async function insertEvent(title: string, description: string, eventDate: string) {
