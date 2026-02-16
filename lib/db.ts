@@ -68,6 +68,7 @@ async function initializeDatabase() {
         recipient_user_id INTEGER,
         sender_user_id INTEGER,
         is_read INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
         created_at TEXT NOT NULL
       );
       
@@ -403,8 +404,8 @@ export async function insertAnonymousMessage(body: string, recipientUserId: numb
   await ensureInitialized();
   const createdAt = new Date().toISOString();
   const result = await getDb().execute({
-    sql: 'INSERT INTO messages (body, recipient_user_id, sender_user_id, created_at) VALUES (?, ?, ?, ?)',
-    args: [body.trim(), recipientUserId, senderUserId ?? null, createdAt]
+    sql: 'INSERT INTO messages (body, recipient_user_id, sender_user_id, status, created_at) VALUES (?, ?, ?, ?, ?)',
+    args: [body.trim(), recipientUserId, senderUserId ?? null, 'pending', createdAt]
   });
   return { id: Number(result.lastInsertRowid), createdAt };
 }
@@ -412,7 +413,7 @@ export async function insertAnonymousMessage(body: string, recipientUserId: numb
 export async function listInbox(recipientUserId: number) {
   await ensureInitialized();
   const result = await getDb().execute({
-    sql: 'SELECT id, body, is_read as isRead, created_at as createdAt FROM messages WHERE recipient_user_id = ? ORDER BY created_at DESC',
+    sql: "SELECT id, body, is_read as isRead, created_at as createdAt FROM messages WHERE recipient_user_id = ? AND status = 'approved' ORDER BY created_at DESC",
     args: [recipientUserId]
   });
   return result.rows.map(row => ({
@@ -476,11 +477,42 @@ export async function deleteMessageById(messageId: number) {
   });
 }
 
+// List pending messages for admin (anonymous - no sender/recipient info)
+export async function listPendingMessagesAnonymous() {
+  await ensureInitialized();
+  const result = await getDb().execute(
+    "SELECT id, body, created_at as createdAt FROM messages WHERE status = 'pending' ORDER BY created_at DESC"
+  );
+  return result.rows.map(row => ({
+    id: Number(row.id),
+    body: String(row.body),
+    createdAt: String(row.createdAt)
+  }));
+}
+
+// Approve a message
+export async function approveMessage(messageId: number) {
+  await ensureInitialized();
+  return getDb().execute({
+    sql: "UPDATE messages SET status = 'approved' WHERE id = ? AND status = 'pending'",
+    args: [messageId]
+  });
+}
+
+// Reject a message (delete it)
+export async function rejectMessage(messageId: number) {
+  await ensureInitialized();
+  return getDb().execute({
+    sql: 'DELETE FROM messages WHERE id = ?',
+    args: [messageId]
+  });
+}
+
 export async function countUnreadMessages(recipientUserId: number) {
   await ensureInitialized();
   try {
     const result = await getDb().execute({
-      sql: 'SELECT COUNT(*) as count FROM messages WHERE recipient_user_id = ? AND is_read = 0',
+      sql: "SELECT COUNT(*) as count FROM messages WHERE recipient_user_id = ? AND is_read = 0 AND status = 'approved'",
       args: [recipientUserId]
     });
     return Number(result.rows[0]?.count || 0);
