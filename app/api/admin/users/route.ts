@@ -58,11 +58,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: 'มีนักเรียนนี้อยู่แล้ว' }, { status: 409 });
     }
 
-    // Hash password and create student
+    // แฮช รหัสผ่าน และสร้างนักเรียน
     const passwordHash = await bcrypt.hash(password, 10);
     const created = await createUser(firstName, lastName, classCode, passwordHash);
 
-    return NextResponse.json({ ok: true, id: created.id });
+    return NextResponse.json({ ok: true, id: created.id, studentId: created.studentId });
   } catch (err) {
     return NextResponse.json({ ok: false, message: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }

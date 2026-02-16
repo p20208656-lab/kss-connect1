@@ -46,7 +46,7 @@ async function initializeDatabase() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
-        student_id TEXT,
+        student_id TEXT UNIQUE,
         class_code TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'student',
@@ -154,7 +154,52 @@ async function ensureInitialized() {
 }
 
 // ============================================================================
-// LOGIN FUNCTIONS
+// ฟังก์ชันสร้างรหัสนักเรียน
+// ============================================================================
+
+/**
+ * สร้างรหัสนักเรียน 5 ตัวเลขโดยอัตโนมัติ
+ * ตัวอย่าง: 00001, 00002, 00003...
+ */
+export async function generateStudentId(): Promise<string> {
+  await ensureInitialized();
+  
+  // หา student_id ที่มากที่สุดแล้ว
+  const result = await getDb().execute({
+    sql: `SELECT MAX(CAST(student_id AS INTEGER)) as max_id FROM users WHERE student_id REGEXP '^[0-9]{5}$'`
+  });
+  
+  let maxId = Number(result.rows[0]?.max_id || 0);
+  const newId = maxId + 1;
+  
+  // แปลงเป็น 5 ตัวเลข (เติมศูนย์นำหน้า)
+  return String(newId).padStart(5, '0');
+}
+
+/**
+ * กำหนดรหัสนักเรียนให้ผู้ใช้
+ */
+export async function assignStudentId(userId: number): Promise<string> {
+  await ensureInitialized();
+  const studentId = await generateStudentId();
+  
+  try {
+    await getDb().execute({
+      sql: 'UPDATE users SET student_id = ? WHERE id = ? AND student_id IS NULL',
+      args: [studentId, userId]
+    });
+    return studentId;
+  } catch (err: any) {
+    // ถ้าเกิดข้อผิดพลาด หลองสร้าง ID ใหม่อีกครั้ง
+    if (err.message?.includes('UNIQUE')) {
+      return assignStudentId(userId);
+    }
+    throw err;
+  }
+}
+
+// ============================================================================
+// ฟังก์ชันเข้าสู่ระบบ
 // ============================================================================
 
 export async function insertLogin(firstName: string, lastName: string, classCode: string) {
@@ -168,13 +213,13 @@ export async function insertLogin(firstName: string, lastName: string, classCode
 }
 
 // ============================================================================
-// USER FUNCTIONS
+// ฟังก์ชันจัดการผู้ใช้
 // ============================================================================
 
 export async function findUser(firstName: string, lastName: string, classCode: string) {
   await ensureInitialized();
   const result = await getDb().execute({
-    sql: 'SELECT id, first_name, last_name, class_code, password_hash, created_at FROM users WHERE first_name = ? AND last_name = ? AND class_code = ?',
+    sql: 'SELECT id, first_name, last_name, student_id, class_code, password_hash, created_at FROM users WHERE first_name = ? AND last_name = ? AND class_code = ?',
     args: [firstName.trim(), lastName.trim(), classCode.trim()]
   });
   if (result.rows.length === 0) return undefined;
@@ -183,6 +228,7 @@ export async function findUser(firstName: string, lastName: string, classCode: s
     id: Number(row.id),
     first_name: String(row.first_name),
     last_name: String(row.last_name),
+    student_id: row.student_id ? String(row.student_id) : null,
     class_code: String(row.class_code),
     password_hash: String(row.password_hash),
     created_at: String(row.created_at)
@@ -192,13 +238,14 @@ export async function findUser(firstName: string, lastName: string, classCode: s
 export async function findUsersByName(firstName: string, lastName: string) {
   await ensureInitialized();
   const result = await getDb().execute({
-    sql: 'SELECT id, first_name, last_name, class_code, password_hash, created_at FROM users WHERE first_name = ? AND last_name = ?',
+    sql: 'SELECT id, first_name, last_name, student_id, class_code, password_hash, created_at FROM users WHERE first_name = ? AND last_name = ?',
     args: [firstName.trim(), lastName.trim()]
   });
   return result.rows.map(row => ({
     id: Number(row.id),
     first_name: String(row.first_name),
     last_name: String(row.last_name),
+    student_id: row.student_id ? String(row.student_id) : null,
     class_code: String(row.class_code),
     password_hash: String(row.password_hash),
     created_at: String(row.created_at)
@@ -208,22 +255,25 @@ export async function findUsersByName(firstName: string, lastName: string) {
 export async function createUser(firstName: string, lastName: string, classCode: string, passwordHash: string) {
   await ensureInitialized();
   const createdAt = new Date().toISOString();
+  const studentId = await generateStudentId();
+  
   const result = await getDb().execute({
-    sql: 'INSERT INTO users (first_name, last_name, class_code, password_hash, created_at) VALUES (?, ?, ?, ?, ?)',
-    args: [firstName.trim(), lastName.trim(), classCode.trim(), passwordHash, createdAt]
+    sql: 'INSERT INTO users (first_name, last_name, student_id, class_code, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    args: [firstName.trim(), lastName.trim(), studentId, classCode.trim(), passwordHash, createdAt]
   });
-  return { id: Number(result.lastInsertRowid), createdAt };
+  return { id: Number(result.lastInsertRowid), studentId, createdAt };
 }
 
 export async function listAllUsers() {
   await ensureInitialized();
   const result = await getDb().execute(
-    'SELECT id, first_name, last_name, class_code, password_hash, role, created_at FROM users ORDER BY first_name ASC, last_name ASC'
+    'SELECT id, first_name, last_name, student_id, class_code, password_hash, role, created_at FROM users ORDER BY first_name ASC, last_name ASC'
   );
   return result.rows.map(row => ({
     id: Number(row.id),
     first_name: String(row.first_name),
     last_name: String(row.last_name),
+    student_id: row.student_id ? String(row.student_id) : null,
     class_code: String(row.class_code),
     password_hash: String(row.password_hash),
     role: String(row.role || 'student'),
@@ -250,7 +300,7 @@ export async function deleteUser(userId: number) {
 export async function getUserById(userId: number) {
   await ensureInitialized();
   const result = await getDb().execute({
-    sql: 'SELECT id, first_name, last_name, class_code FROM users WHERE id = ?',
+    sql: 'SELECT id, first_name, last_name, student_id, class_code FROM users WHERE id = ?',
     args: [userId]
   });
   if (result.rows.length === 0) return undefined;
@@ -259,6 +309,7 @@ export async function getUserById(userId: number) {
     id: Number(row.id),
     first_name: String(row.first_name),
     last_name: String(row.last_name),
+    student_id: row.student_id ? String(row.student_id) : null,
     class_code: String(row.class_code)
   };
 }

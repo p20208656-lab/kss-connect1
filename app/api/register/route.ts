@@ -37,12 +37,13 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const created = await createUser(firstName, lastName, classCode, passwordHash);
-    // Optional: initial login record
+    // เพิ่มบันทึกการเข้าสู่ระบบเริ่มต้น
     await insertLogin(firstName, lastName, classCode);
 
     const res = NextResponse.json({ 
       ok: true, 
-      id: created.id, 
+      id: created.id,
+      studentId: created.studentId,
       createdAt: created.createdAt,
       userId: created.id,
       classCode: classCode

@@ -9,6 +9,7 @@ interface User {
   id: number;
   first_name: string;
   last_name: string;
+  student_id: string | null;
   class_code: string;
   role: string;
   password_hash: string;
@@ -297,6 +298,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold">ID</th>
                   <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold">ชื่อ-นามสกุล</th>
+                  <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold">รหัสนักเรียน</th>
                   <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold">ห้องเรียน</th>
                   <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold hidden sm:table-cell">รหัสผ่าน</th>
                   <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold hidden md:table-cell">สิทธิ์</th>
@@ -308,6 +310,7 @@ export default function AdminUsersPage() {
                   <tr key={user.id} className="border-b hover:bg-green-50 transition">
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 text-xs sm:text-sm">{user.id}</td>
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 font-semibold text-xs sm:text-sm">{user.first_name} {user.last_name}</td>
+                    <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 text-xs sm:text-sm font-mono font-bold bg-blue-50 px-2 py-1 rounded">{user.student_id || 'ไม่มี'}</td>
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 text-xs sm:text-sm">{user.class_code}</td>
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 hidden sm:table-cell">
                       <div className="flex items-center gap-2">
