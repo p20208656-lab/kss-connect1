@@ -21,11 +21,22 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState({ 
     firstName: '', 
     lastName: '', 
     classCode: '', 
     password: '' 
+  });
+
+  // Filter users based on search query
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase().trim();
+    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+    const studentId = (user.student_id || '').toLowerCase();
+    const classCode = user.class_code.toLowerCase();
+    return fullName.includes(query) || studentId.includes(query) || classCode.includes(query);
   });
 
   useEffect(() => {
@@ -210,6 +221,39 @@ export default function AdminUsersPage() {
           </button>
         </div>
 
+        {/* Search Box */}
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหาชื่อ นามสกุล รหัสนักเรียน หรือห้องเรียน..."
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-400 focus:border-school-400 text-gray-900 placeholder-gray-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="mt-2 text-sm text-gray-600">
+              พบ <span className="font-bold text-school-600">{filteredUsers.length}</span> รายการ จากทั้งหมด {users.length} รายการ
+            </p>
+          )}
+        </div>
+
         {/* Add Student Form */}
         {showAddForm && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-2 border-blue-100">
@@ -306,7 +350,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="border-b hover:bg-green-50 transition">
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 text-xs sm:text-sm">{user.id}</td>
                     <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-gray-700 font-semibold text-xs sm:text-sm">{user.first_name} {user.last_name}</td>
@@ -349,7 +393,11 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {users.length === 0 && (
+        {filteredUsers.length === 0 && searchQuery && (
+          <p className="text-center text-gray-500 mt-8">ไม่พบผู้ใช้ที่ตรงกับ "{searchQuery}"</p>
+        )}
+
+        {users.length === 0 && !searchQuery && (
           <p className="text-center text-gray-500 mt-8">ไม่มีผู้ใช้ในระบบ</p>
         )}
 
