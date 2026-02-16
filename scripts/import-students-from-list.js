@@ -9,14 +9,6 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN
 });
 
-// Function to generate student ID
-async function generateStudentId() {
-  const result = await db.execute({
-    sql: `SELECT MAX(CAST(student_id AS INTEGER)) as max_id FROM users WHERE student_id IS NOT NULL`
-  });
-  let maxId = Number(result.rows[0]?.max_id || 0);
-  return String(maxId + 1).padStart(5, '0');
-}
 
 // Function to create class code from ชั้น and ห้อง
 function createClassCode(level, room) {
@@ -38,13 +30,37 @@ async function importStudents() {
     // Skip header
     const students = [];
     for (let i = 1; i < lines.length; i++) {
-      const [level, room, firstName, lastName] = lines[i].split('\t');
-      if (level && room && firstName && lastName) {
+      const parts = lines[i].split('\t').map((value) => value.trim());
+      if (parts.length >= 5) {
+        const [level, room, studentId, firstName, lastName] = parts;
+        if (level && room && studentId && firstName && lastName) {
+          students.push({
+            level,
+            room,
+            studentId,
+            firstName,
+            lastName
+          });
+        }
+        continue;
+      }
+
+      if (parts.length === 4) {
+        const [level, room, studentId, fullName] = parts;
+        if (!level || !room || !studentId || !fullName) {
+          continue;
+        }
+
+        const nameParts = fullName.split(' ').filter(Boolean);
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '-';
+        const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : fullName;
+
         students.push({
-          level: level.trim(),
-          room: room.trim(),
-          firstName: firstName.trim(),
-          lastName: lastName.trim()
+          level,
+          room,
+          studentId,
+          firstName,
+          lastName
         });
       }
     }
@@ -56,23 +72,26 @@ async function importStudents() {
     let failCount = 0;
     const errors = [];
     
-    // Generate default password hash (password: "123456")
-    const defaultPassword = '123456';
+    // Generate default password hash (password: "12345678")
+    const defaultPassword = '12345678';
     const passwordHash = await bcryptjs.hash(defaultPassword, 10);
     
     for (const student of students) {
       try {
         const classCode = createClassCode(student.level, student.room);
-        const studentId = await generateStudentId();
         const createdAt = new Date().toISOString();
         
         await db.execute({
           sql: `INSERT INTO users (first_name, last_name, student_id, class_code, password_hash, role, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(first_name, last_name, class_code) DO UPDATE SET
+                  student_id = excluded.student_id,
+                  password_hash = excluded.password_hash,
+                  role = excluded.role`,
           args: [
             student.firstName,
             student.lastName,
-            studentId,
+            student.studentId,
             classCode,
             passwordHash,
             'student',
